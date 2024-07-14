@@ -1,4 +1,5 @@
 using LoePowerSchedule.Models;
+using MongoDB.Driver.Core.Operations;
 using TimeProvider = LoePowerSchedule.Services.TimeProvider;
 
 namespace LoePowerSchedule.DAL;
@@ -14,17 +15,20 @@ public class ScheduleRepository(MongoDbContext context, TimeProvider timeProvide
     public async Task<List<ScheduleDoc>> GetAllAsync()
     {
         return await _schedules
-            .Find(schedule => true)
+            .Find(schedule => !schedule.IsArchived)
             .SortByDescending(s => s.Date)
             .ToListAsync();
     }
 
-    public async Task<ScheduleDoc> GetByDateAsync(DateTimeOffset date)
+    public async Task<ScheduleDoc?> GetByDateAsync(DateTimeOffset date)
     {
         var from = date.Date;
         var to = from.AddDays(1);
         return await _schedules
-            .Find(schedule => schedule.Date >= from && schedule.Date < to)
+            .Find(schedule => 
+                schedule.Date >= from 
+                && schedule.Date < to
+                && !schedule.IsArchived)
             .FirstOrDefaultAsync();
     }
 
@@ -38,7 +42,7 @@ public class ScheduleRepository(MongoDbContext context, TimeProvider timeProvide
     public async Task<ScheduleDoc> GetLatestAsync()
     {
         return await _schedules
-            .Find(schedule => true)
+            .Find(schedule => !schedule.IsArchived)
             .SortByDescending(s => s.Date)
             .FirstOrDefaultAsync();
     }
@@ -48,7 +52,7 @@ public class ScheduleRepository(MongoDbContext context, TimeProvider timeProvide
         var now = timeProvider.UtcNow;
         var yesterday = now.AddDays(-1);
         var schedules = await _schedules
-            .Find(schedule => schedule.Date >= yesterday)
+            .Find(schedule => !schedule.IsArchived && schedule.Date >= yesterday)
             .ToListAsync();
 
         return schedules
@@ -93,6 +97,14 @@ public class ScheduleRepository(MongoDbContext context, TimeProvider timeProvide
         await _schedules.ReplaceOneAsync(schedule => schedule.Id == id, scheduleIn);
     }
 
+    public async Task ArchiveAsync(string id)
+    {
+        await _schedules.UpdateOneAsync(
+            s => s.Id == id, 
+            Builders<ScheduleDoc>
+                .Update.Set(s => s.IsArchived, true));
+    }
+    
     public async Task RemoveAsync(string id)
     {
         await _schedules.DeleteOneAsync(schedule => schedule.Id == id);

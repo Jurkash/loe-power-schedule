@@ -14,6 +14,8 @@ public class ScheduleDoc
 
     public string ImageUrl { get; set; } = "";
 
+    public bool IsArchived = false;
+
     public List<GroupDoc> Groups { get; set; } = new List<GroupDoc>();
 }
 

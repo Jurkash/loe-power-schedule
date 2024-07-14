@@ -15,13 +15,9 @@ public class ImportService(
 {
     public async Task ImportAsync()
     {
-        // var images = await scraperService.GetImagesFromClass(
-        //     importOptions.Value.ImportUrl,
-        //     importOptions.Value.ImportClassName);
-        var images = new[]
-        {
-            "2024-07-09 22.32.57.jpg"
-        };
+        var images = await scraperService.GetImagesFromClass(
+            importOptions.Value.ImportUrl,
+            importOptions.Value.ImportClassName);
         
         foreach (var imageUrl in images)
         {
@@ -30,6 +26,9 @@ public class ImportService(
 
             var ocrTable = await visionService.GetTableFromImage(imageUrl);
             var parsedSchedule = scheduleParserService.ParseScheduleFromList(imageUrl, ocrTable);
+
+            var sameDateScheduleDb = await scheduleRepository.GetByDateAsync(parsedSchedule.Date);
+            if (sameDateScheduleDb != null) await scheduleRepository.ArchiveAsync(sameDateScheduleDb.Id);
             await scheduleRepository.CreateAsync(parsedSchedule);
         }
     }
