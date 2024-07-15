@@ -13,6 +13,7 @@ lps=$1
 # Build the Docker image
 docker build \
   -t loepowerschedule.azurecr.io/loepowerschedule:$lps \
+  -t loepowerschedule.azurecr.io/loepowerschedule:latest \
   -f ./Dockerfile \
   ../
 
@@ -24,6 +25,7 @@ fi
 
 # Push the Docker image to Azure Container Registry
 docker push loepowerschedule.azurecr.io/loepowerschedule:$lps
+docker push loepowerschedule.azurecr.io/loepowerschedule:latest
 
 # Check if the Docker push was successful
 if [ $? -ne 0 ]; then
