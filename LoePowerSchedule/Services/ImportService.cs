@@ -11,6 +11,7 @@ public class ImportService(
     VisionService visionService,
     ScheduleParserService scheduleParserService,
     ScheduleRepository scheduleRepository,
+    OcrRepository ocrRepository,
     IOptions<ImportOptions> importOptions)
 {
     public async Task ImportAsync()
@@ -25,6 +26,9 @@ public class ImportService(
             if (dbSchedule?.Groups.Count > 0) continue;
 
             var ocrTable = await visionService.GetTableFromImage(imageUrl);
+            await ocrRepository.SaveOcrResultAsync(
+                ocrTable[0].ToList(), 
+                ocrTable.Select(r => r[0]).ToList());
             var parsedSchedule = scheduleParserService.ParseScheduleFromList(imageUrl, ocrTable);
 
             var sameDateScheduleDb = await scheduleRepository.GetByDateAsync(parsedSchedule.Date);

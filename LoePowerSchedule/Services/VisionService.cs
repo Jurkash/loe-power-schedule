@@ -27,14 +27,19 @@ public class VisionService(
         var binaryData = await SharpenImageFromUrl(imageUrl);
         var result = await _visionClient.AnalyzeAsync(
             binaryData,
-            VisualFeatures.Read);
-
+            VisualFeatures.Read,
+            new ImageAnalysisOptions()
+            {
+                Language = "en",
+                GenderNeutralCaption = false,
+                ModelVersion = "latest"
+            });
+        
         if (!result.HasValue) return null;
 
         var date = DateTime.Today;
         var dateBoundaries = new List<ImagePoint>();
         var i = 0;
-        var j = 0;
         var schedule = new List<List<(string data, List<ImagePoint> boundaries)>> { new() };
         schedule[0].Add(("X", new List<ImagePoint>()));
 
@@ -64,7 +69,6 @@ public class VisionService(
                     if (groupMatch.Success)
                     {
                         i++;
-                        j = 1;
                         schedule.Add(new List<(string, List<ImagePoint>)>());
                         schedule[i].Add((groupMatch.Value, word.BoundingPolygon.ToList()));
                         continue;
@@ -73,31 +77,9 @@ public class VisionService(
                     var hoursMatch = Regex.Match(word.Text, @"\b\d{1,2}-\d{1,2}\b");
                     if (hoursMatch.Success)
                     {
-                        j++;
                         schedule[i].Add((hoursMatch.Value, word.BoundingPolygon.ToList()));
                         continue;
                     }
-
-                    // if (i > 0)
-                    // {
-                    //     j++;
-                    //     var res = line.Words.Count > 1 ? "true" : "false";
-                    //     var text = line.Text.ToLower();
-                    //     if (line.Words.Count > 0
-                    //         || text.Contains("є")
-                    //         || text.Contains("р")
-                    //         || text.Contains("г")
-                    //         || text.Contains("і")
-                    //         || text.Contains("я"))
-                    //         res = "true";
-                    //     if (text.Contains("в")
-                    //         || text.Contains("и")
-                    //         || text.Contains("м")
-                    //         || text.Contains("к")
-                    //         || text.Contains("о"))
-                    //         res = "false";
-                    //     schedule[i].Add(res);
-                    // }
                 }
             }
         }
@@ -146,8 +128,9 @@ public class VisionService(
     private async Task<BinaryData> SharpenImageFromUrl(string imageUrl)
     {
         using var image = await DownloadImageAsync(imageUrl);
-        // using var image = await OpenImageAsync("./wwwroot/2024-07-09 22.32.57.jpg");
-        image.Mutate(x => x.GaussianSharpen());
+        image.Mutate(imageProcessingContext => imageProcessingContext
+            .GaussianSharpen()
+            .Resize(image.Width * 2, image.Height * 2));
         var customBase64 = image.ToBase64String(JpegFormat.Instance);
         var prefix = "data:image/jpeg;base64,";
         var base64 = customBase64.Substring(prefix.Length, customBase64.Length - prefix.Length);

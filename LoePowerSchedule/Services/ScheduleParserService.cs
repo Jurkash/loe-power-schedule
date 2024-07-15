@@ -30,7 +30,7 @@ public class ScheduleParserService(TimeProvider timeProvider)
         var zip = header.Zip(values).ToList();
         zip.RemoveAt(0);
 
-        var lastTime = ParseTimeInterval(zip[0].First);
+        var lastTime = ParseTimeWindow(zip[0].First);
         var lastIntervalDoc = new
         {
             State = zip[0].Second == "true" ? GridState.PowerOn : GridState.PowerOff,
@@ -40,7 +40,7 @@ public class ScheduleParserService(TimeProvider timeProvider)
 
         foreach (var item in zip)
         {
-            var fromTo = ParseTimeInterval(item.First);
+            var fromTo = ParseTimeWindow(item.First);
             var gridState = item.Second == "true" ? GridState.PowerOn : GridState.PowerOff;
             if (gridState != lastIntervalDoc.State)
             {
@@ -74,7 +74,7 @@ public class ScheduleParserService(TimeProvider timeProvider)
         return result;
     }
 
-    private (int from, int to) ParseTimeInterval(string timeString)
+    private (int from, int to) ParseTimeWindow(string timeString)
     {
         var fromTo = timeString.Split("-");
         var from = int.Parse(fromTo[0]);

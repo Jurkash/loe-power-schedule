@@ -1,5 +1,4 @@
 using LoePowerSchedule.Models;
-using MongoDB.Driver.Core.Operations;
 using TimeProvider = LoePowerSchedule.Services.TimeProvider;
 
 namespace LoePowerSchedule.DAL;

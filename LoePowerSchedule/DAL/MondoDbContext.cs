@@ -14,4 +14,5 @@ public class MongoDbContext
     }
 
     public IMongoCollection<ScheduleDoc> Schedules => _database.GetCollection<ScheduleDoc>("Schedules");
+    public IMongoCollection<OcrDoc> Hours => _database.GetCollection<OcrDoc>("Ocr");
 }

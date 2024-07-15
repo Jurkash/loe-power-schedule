@@ -11,7 +11,7 @@ using TimeProvider = LoePowerSchedule.Services.TimeProvider;
 
 namespace LoePowerSchedule.Extensions;
 
-public static class ServisesExtensions
+public static class ServicesExtensions
 {
     public static IServiceCollection AddMongoDb(this IServiceCollection services, IConfiguration configuration)
     {
@@ -50,7 +50,9 @@ public static class ServisesExtensions
 
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
-        return services.AddScoped<ScheduleRepository>();
+        return services
+            .AddScoped<ScheduleRepository>()
+            .AddScoped<OcrRepository>();
     }
 
     public static IServiceCollection AddCoreModule(this IServiceCollection services)
