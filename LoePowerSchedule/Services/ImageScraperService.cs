@@ -5,11 +5,15 @@ using PuppeteerSharp;
 
 namespace LoePowerSchedule.Services;
 
-public class ImageScraperService(IOptions<BrowserOptions> browserOptions)
+public class ImageScraperService(
+    IOptions<BrowserOptions> browserOptions,
+    ILogger<ImageScraperService> logger)
 {
     public async Task<List<string>> GetImagesFromClass(string url, string className)
     {
         var content = await GetPageContentAsync(url, className);
+
+        if (content == string.Empty) return new List<string>();
 
         var htmlDocument = new HtmlDocument();
         htmlDocument.LoadHtml(content);
@@ -36,20 +40,28 @@ public class ImageScraperService(IOptions<BrowserOptions> browserOptions)
 
     private async Task<string> GetPageContentAsync(string url, string className)
     {
-        // Connect to docker browserless/chrome container
-        var browser = await Puppeteer.ConnectAsync(new ConnectOptions()
+        try
         {
-            BrowserWSEndpoint = browserOptions.Value.BrowserUrl
-        });
-        await using var page = await browser.NewPageAsync();
-        await page.GoToAsync(url);
+            // Connect to docker browserless/chrome container
+            var browser = await Puppeteer.ConnectAsync(new ConnectOptions()
+            {
+                BrowserWSEndpoint = browserOptions.Value.BrowserUrl
+            });
+            await using var page = await browser.NewPageAsync();
+            await page.GoToAsync(url);
 
-        // Wait for the required component to render
-        await page.WaitForSelectorAsync($"[class*='{className}']");
+            // Wait for the required component to render
+            await page.WaitForSelectorAsync($"[class*='{className}']");
 
-        // Extract the content
-        var content = await page.GetContentAsync();
+            // Extract the content
+            var content = await page.GetContentAsync();
+            return content;
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message, ex);
+        }
 
-        return content;
+        return string.Empty;
     }
 }

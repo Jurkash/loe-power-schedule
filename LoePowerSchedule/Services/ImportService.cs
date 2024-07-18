@@ -26,6 +26,7 @@ public class ImportService(
             if (dbSchedule?.Groups.Count > 0) continue;
 
             var ocrTable = await visionService.GetTableFromImage(imageUrl);
+            if(ocrTable == null) return;
             await ocrRepository.SaveOcrResultAsync(
                 ocrTable[0].ToList(), 
                 ocrTable.Select(r => r[0]).ToList());
