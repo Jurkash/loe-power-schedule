@@ -95,10 +95,6 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
             hour = 0;
         }
 
-        var tzKyiv = "Europe/Kyiv";
-        var tzKyivInfo = TimeZoneInfo.FindSystemTimeZoneById(tzKyiv);
-        var utcTime = timeProvider.UtcNow;
-        var offset = tzKyivInfo.GetUtcOffset(utcTime);
-        return new DateTimeOffset(date.Year, date.Month, date.Day, hour, 0, 0, offset);
+        return new DateTimeOffset(date.Year, date.Month, date.Day, hour, 0, 0, timeProvider.KyivOffset);
     }
 }

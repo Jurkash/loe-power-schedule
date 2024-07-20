@@ -62,7 +62,8 @@ public static class ServicesExtensions
             .AddScoped<ImageScraperService>()
             .AddScoped<ImportService>()
             .AddScoped<ColorRecognitionService>()
-            .AddScoped<ScheduleParserService>();
+            .AddScoped<ScheduleParserService>()
+            .AddScoped<VisualisationService>();
     }
 
     public static IServiceCollection AddBackgroundServices(this IServiceCollection services)

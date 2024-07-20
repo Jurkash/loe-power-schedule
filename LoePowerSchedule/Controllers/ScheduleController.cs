@@ -1,5 +1,7 @@
+using System.Reflection.Metadata;
 using LoePowerSchedule.DAL;
 using LoePowerSchedule.Models;
+using LoePowerSchedule.Services;
 
 namespace LoePowerSchedule.Controllers;
 
@@ -10,7 +12,9 @@ using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ScheduleController(ScheduleRepository scheduleRepository)
+public class ScheduleController(
+    ScheduleRepository scheduleRepository,
+    VisualisationService visualisationService)
     : ControllerBase
 {
     [HttpGet("all")]
@@ -51,5 +55,13 @@ public class ScheduleController(ScheduleRepository scheduleRepository)
     {
         var nextStateTime = await scheduleRepository.GetNextStateTime(groupId, GridState.PowerOn);
         return Ok(nextStateTime);
+    }
+    
+    [HttpGet("visualisation/{date}/{groupId}")]
+    [ProducesResponseType(typeof(Blob), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetScheduleVisualisation(DateTimeOffset date, string groupId)
+    {
+        var vis= await visualisationService.GenerateScheduleSvg(date, groupId);
+        return Content(vis, "text/html;charset=utf-8");
     }
 }
