@@ -2,7 +2,7 @@ using LoePowerSchedule.Models;
 
 namespace LoePowerSchedule.Services;
 
-public class ScheduleParserService(TimeProvider timeProvider)
+public class ScheduleParserService(TimeProvider timeProvider, ILogger<ScheduleParserService> logger)
 {
     public ScheduleDoc ParseScheduleFromList(string imageUrl, string[][] input)
     {
@@ -17,7 +17,7 @@ public class ScheduleParserService(TimeProvider timeProvider)
             Groups = input.Skip(1).Select(l => new GroupDoc
             {
                 Id = l[0],
-                Intervals = ParseIntervals(date, input[0].ToList(), l.ToList())
+                Intervals = ParseIntervals(date, input[0].Skip(1).ToList(), l.Skip(1).ToList())
             }).ToList()
         };
 
@@ -27,10 +27,13 @@ public class ScheduleParserService(TimeProvider timeProvider)
     private List<IntervalDoc> ParseIntervals(DateTime date, List<string> header, List<string> values)
     {
         var result = new List<IntervalDoc>();
-        var zip = header.Zip(values).ToList();
-        zip.RemoveAt(0);
+        var zip = header
+            .Select(ParseTimeWindow)
+            .Zip(values)
+            .OrderBy(z => z.First.from)
+            .ToList();
 
-        var lastTime = ParseTimeWindow(zip[0].First);
+        var lastTime = zip[0].First;
         var lastIntervalDoc = new
         {
             State = zip[0].Second == "true" ? GridState.PowerOn : GridState.PowerOff,
@@ -40,7 +43,7 @@ public class ScheduleParserService(TimeProvider timeProvider)
 
         foreach (var item in zip)
         {
-            var fromTo = ParseTimeWindow(item.First);
+            var fromTo = item.First;
             var gridState = item.Second == "true" ? GridState.PowerOn : GridState.PowerOff;
             if (gridState != lastIntervalDoc.State)
             {
@@ -79,18 +82,23 @@ public class ScheduleParserService(TimeProvider timeProvider)
         var fromTo = timeString.Split("-");
         var from = int.Parse(fromTo[0]);
         var to = int.Parse(fromTo[1]);
+        from = from - to > 0 ? from - 24 : from;
         to = to - from < 0 ? to + 24 : to;
         return (from, to);
     }
 
     private DateTimeOffset ConstructDateTimeOffset(DateTime date, int hour)
     {
-        var tzKyiv = "Europe/Kyiv"; 
+        if (hour == 24)
+        {
+            date = date.Date.AddDays(1);
+            hour = 0;
+        }
+
+        var tzKyiv = "Europe/Kyiv";
         var tzKyivInfo = TimeZoneInfo.FindSystemTimeZoneById(tzKyiv);
         var utcTime = timeProvider.UtcNow;
         var offset = tzKyivInfo.GetUtcOffset(utcTime);
         return new DateTimeOffset(date.Year, date.Month, date.Day, hour, 0, 0, offset);
     }
-    
-    
 }

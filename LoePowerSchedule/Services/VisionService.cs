@@ -37,7 +37,7 @@ public class VisionService(
         
         if (!result.HasValue) return null;
 
-        var date = DateTime.Today;
+        var dates = new List<DateTime>() {DateTime.Today};
         var dateBoundaries = new List<ImagePoint>();
         var i = 0;
         var schedule = new List<List<(string data, List<ImagePoint> boundaries)>> { new() };
@@ -53,14 +53,16 @@ public class VisionService(
                     if (dateMatch.Success)
                     {
                         var formats = new[] { "dd.MM.yyyy", "d.MM.yyyy", "dd.M.yyyy", "d.M.yyyy" };
-                        bool isParsed = DateTime.TryParseExact(
-                            dateMatch.Value,
-                            formats,
-                            CultureInfo.InvariantCulture,
-                            DateTimeStyles.None,
-                            out var parsedDate
-                        );
-                        date = isParsed ? parsedDate : date;
+                        if (DateTime.TryParseExact(
+                                dateMatch.Value,
+                                formats,
+                                CultureInfo.InvariantCulture,
+                                DateTimeStyles.None,
+                                out var parsedDate
+                            ))
+                        {
+                            dates.Add(parsedDate);
+                        }
                         dateBoundaries = word.BoundingPolygon.ToList();
                         continue;
                     }
@@ -84,7 +86,7 @@ public class VisionService(
             }
         }
 
-        schedule[0][0] = (date.ToShortDateString(), dateBoundaries);
+        schedule[0][0] = (dates.Max().ToShortDateString(), dateBoundaries);
         return EnrichSchedule(schedule, binaryData);
     }
 
