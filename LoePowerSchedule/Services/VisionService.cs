@@ -132,7 +132,7 @@ public class VisionService(
         using var image = await DownloadImageAsync(imageUrl);
         image.Mutate(imageProcessingContext => imageProcessingContext
             .GaussianSharpen()
-            .Contrast(1.2f)
+            .Contrast(1.5f)
             .Resize(image.Width * 2, image.Height * 2));
         var customBase64 = image.ToBase64String(JpegFormat.Instance);
         var prefix = "data:image/jpeg;base64,";
