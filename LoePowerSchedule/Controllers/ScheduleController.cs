@@ -14,7 +14,8 @@ using System.Threading.Tasks;
 [Route("api/[controller]")]
 public class ScheduleController(
     ScheduleRepository scheduleRepository,
-    VisualisationService visualisationService)
+    VisualisationService visualisationService,
+    Services.TimeProvider timeProvider)
     : ControllerBase
 {
     [HttpGet("all")]
@@ -62,6 +63,15 @@ public class ScheduleController(
     public async Task<IActionResult> GetScheduleVisualisation(DateTimeOffset date, string groupId)
     {
         var vis= await visualisationService.GenerateScheduleSvg(date, groupId);
+        return Content(vis, "text/html;charset=utf-8");
+    }
+    
+    [HttpGet("visualisation/today/{groupId}")]
+    [ProducesResponseType(typeof(Blob), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetTodayScheduleVisualisation(string groupId)
+    {
+        var kyivToday = timeProvider.KyivNow.Date;
+        var vis= await visualisationService.GenerateScheduleSvg(kyivToday, groupId);
         return Content(vis, "text/html;charset=utf-8");
     }
 }
