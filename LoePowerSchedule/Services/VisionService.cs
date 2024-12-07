@@ -24,9 +24,10 @@ public class VisionService(
 
     public async Task<string[][]?> GetTableFromImage(string imageUrl)
     {
-        var binaryData = await SharpenImageFromUrl(imageUrl);
+        var grayScaleBinaryData = await SharpenImageFromUrl(imageUrl);
+        var colorfulBinaryData = await KeepRawImageFromUrl(imageUrl);
         var result = await _visionClient.AnalyzeAsync(
-            binaryData,
+            grayScaleBinaryData,
             VisualFeatures.Read,
             new ImageAnalysisOptions()
             {
@@ -87,7 +88,7 @@ public class VisionService(
         }
 
         schedule[0][0] = (dates.Max().ToShortDateString(), dateBoundaries);
-        return EnrichSchedule(schedule, binaryData);
+        return EnrichSchedule(schedule, colorfulBinaryData);
     }
 
     private string[][] EnrichSchedule(List<List<(string data, List<ImagePoint> boundaries)>> grid,
@@ -131,9 +132,25 @@ public class VisionService(
     {
         using var image = await DownloadImageAsync(imageUrl);
         image.Mutate(imageProcessingContext => imageProcessingContext
-            .GaussianSharpen()
-            .Contrast(2f)
-            .Saturate(2f)
+            // .GaussianSharpen()
+            .Grayscale()
+            // .Contrast(2f)
+            // .Saturate(2f)
+            .Resize(image.Width * 2, image.Height * 2));
+        var customBase64 = image.ToBase64String(JpegFormat.Instance);
+        var prefix = "data:image/jpeg;base64,";
+        var base64 = customBase64.Substring(prefix.Length, customBase64.Length - prefix.Length);
+        return Base64ToBinaryData(base64);
+    }
+    
+    private async Task<BinaryData> KeepRawImageFromUrl(string imageUrl)
+    {
+        using var image = await DownloadImageAsync(imageUrl);
+        image.Mutate(imageProcessingContext => imageProcessingContext
+            // .GaussianSharpen()
+            // .Grayscale()
+            // .Contrast(2f)
+            // .Saturate(2f)
             .Resize(image.Width * 2, image.Height * 2));
         var customBase64 = image.ToBase64String(JpegFormat.Instance);
         var prefix = "data:image/jpeg;base64,";
