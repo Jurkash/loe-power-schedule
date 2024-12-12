@@ -23,12 +23,100 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
 
         return schedule;
     }
+    
+    public ScheduleDoc ParseFromHoursGroups(string imageUrl, DateTime date, Dictionary<string, List<string>> hoursGroups)
+    {
+        var schedule = new ScheduleDoc
+        {
+            Date = ConstructDateTimeOffset(date, 0),
+            DateString = date.ToString("O"),
+            ImageUrl = imageUrl,
+            Groups = hoursGroups.Select(pair => new GroupDoc
+            {
+                Id = pair.Key,
+                Intervals = ParseIntervalsFromOutageHours(date, pair.Value)
+            }).ToList()
+        };
 
+        return schedule;
+    }
+
+    private List<IntervalDoc> ParseIntervalsFromOutageHours(DateTime date, List<string> outageHours)
+   {
+        var result = new List<IntervalDoc>();
+
+        var sortedOutages = outageHours
+            .Select(time =>
+            {
+                var parts = time.Split(':');
+                if (parts.Length != 2) throw new FormatException($"Invalid time format: {time}");
+        
+                int hours = int.Parse(parts[0]);
+                int minutes = int.Parse(parts[1]);
+        
+                return TimeSpan.FromHours(hours) + TimeSpan.FromMinutes(minutes);
+            })
+            .OrderBy(time => time)
+            .ToList();
+
+        for (int i = 0; i < sortedOutages.Count; i += 2)
+        {
+            var from = sortedOutages[i];
+            var to = i + 1 < sortedOutages.Count ? sortedOutages[i + 1] : TimeSpan.Zero;
+
+            // Add PowerOn interval before the outage if applicable
+            if (i == 0 && from > TimeSpan.Zero)
+            {
+                result.Add(new IntervalDoc
+                {
+                    State = GridState.PowerOn,
+                    StartTime = ConstructDateTimeOffset(date, 0),
+                    EndTime = ConstructDateTimeOffset(date, from.Hours)
+                });
+            }
+
+            // Add PowerOff interval for the outage
+            result.Add(new IntervalDoc
+            {
+                State = GridState.PowerOff,
+                StartTime = ConstructDateTimeOffset(date, from.Hours),
+                EndTime = ConstructDateTimeOffset(date, to.Hours + to.Days * 24)
+            });
+
+            // Add PowerOn interval after the outage if applicable
+            if (i + 1 < sortedOutages.Count && to < TimeSpan.FromHours(24))
+            {
+                var nextFrom = i + 2 < sortedOutages.Count ? sortedOutages[i + 2].Hours : 24;
+
+                result.Add(new IntervalDoc
+                {
+                    State = GridState.PowerOn,
+                    StartTime = ConstructDateTimeOffset(date, to.Hours),
+                    EndTime = ConstructDateTimeOffset(date, nextFrom)
+                });
+            }
+        }
+
+        // Add final PowerOn interval if necessary
+        // var lastEnd = sortedOutages.LastOrDefault();
+        // if (lastEnd < TimeSpan.FromHours(24))
+        // {
+        //     result.Add(new IntervalDoc
+        //     {
+        //         State = GridState.PowerOn,
+        //         StartTime = ConstructDateTimeOffset(date, lastEnd.Hours),
+        //         EndTime = ConstructDateTimeOffset(date,24)
+        //     });
+        // }
+
+        return result;
+    }
+    
     private List<IntervalDoc> ParseIntervals(DateTime date, List<string> header, List<string> values)
     {
         var result = new List<IntervalDoc>();
         var zip = header
-            .Select(ParseTimeWindow)
+            .Select(x => ParseTimeWindow(x,"-"))
             .Zip(values)
             .OrderBy(z => z.First.from)
             .ToList();
@@ -77,9 +165,9 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
         return result;
     }
 
-    private (int from, int to) ParseTimeWindow(string timeString)
+    private (int from, int to) ParseTimeWindow(string timeString, string separator = "-")
     {
-        var fromTo = timeString.Split("-");
+        var fromTo = timeString.Split(separator);
         var from = int.Parse(fromTo[0]);
         var to = int.Parse(fromTo[1]);
         from = from - to > 0 ? from - 24 : from;
