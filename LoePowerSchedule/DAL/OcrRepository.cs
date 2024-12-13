@@ -7,12 +7,12 @@ public class OcrRepository(MongoDbContext context, TimeProvider timeProvider)
 {
     private readonly IMongoCollection<OcrDoc> _hours = context.Hours;
 
-    public async Task SaveOcrResultAsync(List<string> hours, List<string> groups)
+    public async Task SaveOcrResultAsync(string date, List<string> hours, List<string> groups)
     {
         if (hours.Count == 0) return;
         await _hours.InsertOneAsync(new OcrDoc()
         {
-            ParsedDateString = hours[0],
+            ParsedDateString = date,
             ParsedHours = hours,
             ParsedGroups = groups,
             Timestamp = timeProvider.UtcNow.DateTime

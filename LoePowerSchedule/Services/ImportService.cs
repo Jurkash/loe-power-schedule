@@ -31,6 +31,7 @@ public class ImportService(
             var parsedSchedule = scheduleParserService.ParseFromHoursGroups(imageUrl, outageHours.date, outageHours.groups);
             
             await ocrRepository.SaveOcrResultAsync(
+                outageHours.date.ToString("O"),
                 outageHours.groups.Values.SelectMany(g => g).ToList(),
                 outageHours.groups.Select(g => g.Key).ToList() 
             );
