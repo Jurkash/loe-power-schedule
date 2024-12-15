@@ -4,7 +4,6 @@
             let head = document.getElementsByTagName('head')[0];
             let icons = head.querySelectorAll("link[rel='icon']");
             for (let i = 0; i < icons.length; i++) {
-                console.log(icons[i]);
                 head.removeChild(icons[i]);
             }
             let icon = document.createElement('link');
@@ -14,7 +13,14 @@
             head.appendChild(icon);
 
             let logoLink = document.getElementsByClassName('link')[0];
-            logoLink.children[0].src = '/swagger-ui/bulb.svg';
+            fetch('/swagger-ui/bulb.svg')
+                .then(response => response.text())
+                .then(svgContent => {
+                    const parser = new DOMParser();
+                    const newSvg = parser.parseFromString(svgContent, 'image/svg+xml').documentElement;
+                    logoLink.children[0].replaceWith(newSvg);
+                })
+                .catch(error => console.error('Error loading SVG:', error));
             let logoText = document.createElement('span');
             logoText.innerText = 'LOE API';
             logoLink.appendChild(logoText);
@@ -57,6 +63,6 @@
                 }
             };
             xhr.send();
-        });
+        }, 1);
     });
 })();
