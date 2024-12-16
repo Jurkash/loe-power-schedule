@@ -11,7 +11,7 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
         var date = DateTime.Parse(input[0][0]);
         var schedule = new ScheduleDoc
         {
-            Date = ConstructDateTimeOffset(date, 0),
+            Date = ConstructDateTimeOffset(date, 0, 0),
             DateString = date.ToString("O"),
             ImageUrl = imageUrl,
             Groups = input.Skip(1).Select(l => new GroupDoc
@@ -28,7 +28,7 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
     {
         var schedule = new ScheduleDoc
         {
-            Date = ConstructDateTimeOffset(date, 0),
+            Date = ConstructDateTimeOffset(date, 0, 0),
             DateString = date.ToString("O"),
             ImageUrl = imageUrl,
             Groups = hoursGroups.Select(pair => new GroupDoc
@@ -70,8 +70,8 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
                 result.Add(new IntervalDoc
                 {
                     State = GridState.PowerOn,
-                    StartTime = ConstructDateTimeOffset(date, 0),
-                    EndTime = ConstructDateTimeOffset(date, from.Hours)
+                    StartTime = ConstructDateTimeOffset(date, 0, 0),
+                    EndTime = ConstructDateTimeOffset(date, from.Hours, from.Minutes)
                 });
             }
 
@@ -79,20 +79,20 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
             result.Add(new IntervalDoc
             {
                 State = GridState.PowerOff,
-                StartTime = ConstructDateTimeOffset(date, from.Hours),
-                EndTime = ConstructDateTimeOffset(date, to.Hours + to.Days * 24)
+                StartTime = ConstructDateTimeOffset(date, from.Hours, from.Minutes),
+                EndTime = ConstructDateTimeOffset(date, to.Hours + to.Days * 24, to.Minutes)
             });
 
             // Add PowerOn interval after the outage if applicable
             if (i + 1 < sortedOutages.Count && to < TimeSpan.FromHours(24))
             {
-                var nextFrom = i + 2 < sortedOutages.Count ? sortedOutages[i + 2].Hours : 24;
+                var nextFrom = i + 2 < sortedOutages.Count ? sortedOutages[i + 2] : TimeSpan.FromHours(24);
 
                 result.Add(new IntervalDoc
                 {
                     State = GridState.PowerOn,
-                    StartTime = ConstructDateTimeOffset(date, to.Hours),
-                    EndTime = ConstructDateTimeOffset(date, nextFrom)
+                    StartTime = ConstructDateTimeOffset(date, to.Hours, to.Minutes),
+                    EndTime = ConstructDateTimeOffset(date, nextFrom.Hours + nextFrom.Days * 24, nextFrom.Minutes)
                 });
             }
         }
@@ -138,8 +138,8 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
                 result.Add(new IntervalDoc
                 {
                     State = lastIntervalDoc.State,
-                    StartTime = ConstructDateTimeOffset(date, lastIntervalDoc.StartHour),
-                    EndTime = ConstructDateTimeOffset(date, lastIntervalDoc.EndHour),
+                    StartTime = ConstructDateTimeOffset(date, lastIntervalDoc.StartHour, 0),
+                    EndTime = ConstructDateTimeOffset(date, lastIntervalDoc.EndHour, 0),
                 });
                 lastIntervalDoc = new
                 {
@@ -154,7 +154,7 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
             }
         }
 
-        var lastStartTime = ConstructDateTimeOffset(date, lastIntervalDoc.StartHour);
+        var lastStartTime = ConstructDateTimeOffset(date, lastIntervalDoc.StartHour, 0);
         result.Add(new IntervalDoc
         {
             State = lastIntervalDoc.State,
@@ -175,7 +175,7 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
         return (from, to);
     }
 
-    private DateTimeOffset ConstructDateTimeOffset(DateTime date, int hour)
+    private DateTimeOffset ConstructDateTimeOffset(DateTime date, int hour, int minute)
     {
         if (hour == 24)
         {
@@ -183,6 +183,6 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
             hour = 0;
         }
 
-        return new DateTimeOffset(date.Year, date.Month, date.Day, hour, 0, 0, timeProvider.KyivOffset);
+        return new DateTimeOffset(date.Year, date.Month, date.Day, hour, minute, 0, timeProvider.KyivOffset);
     }
 }
