@@ -1,6 +1,26 @@
 (function () {
     window.addEventListener("load", function () {
-        setTimeout(function () {
+        const delays = [10, 100, 300, 1000, 3000]; // Delays in milliseconds
+        let attempt = 0;
+
+        function checkAndExecute() {
+            const element = document.getElementsByClassName('link')[0];
+
+            if (element) {
+                applyCustomSwagger()
+                return; // Exit once the element is found and code is executed
+            }
+
+            if (attempt < delays.length) {
+                console.log("Not Found: ", attempt)
+                setTimeout(checkAndExecute, delays[attempt]);
+                attempt++;
+            } else {
+                console.log('Element not found after all attempts.');
+            }
+        }
+        
+        function applyCustomSwagger() {
             let head = document.getElementsByTagName('head')[0];
             let icons = head.querySelectorAll("link[rel='icon']");
             for (let i = 0; i < icons.length; i++) {
@@ -13,6 +33,10 @@
             head.appendChild(icon);
 
             let logoLink = document.getElementsByClassName('link')[0];
+            if(! logoLink) {
+                console.error("Element not found");
+                return;
+            }
             fetch('/swagger-ui/bulb.svg')
                 .then(response => response.text())
                 .then(svgContent => {
@@ -63,6 +87,8 @@
                 }
             };
             xhr.send();
-        }, 1);
+        }
+
+        checkAndExecute(); // Start the initial check
     });
 })();
