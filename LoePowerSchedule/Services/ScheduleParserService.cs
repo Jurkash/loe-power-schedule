@@ -26,10 +26,11 @@ public class ScheduleParserService(TimeProvider timeProvider, ILogger<SchedulePa
     
     public ScheduleDoc ParseFromHoursGroups(string imageUrl, DateTime date, Dictionary<string, List<string>> hoursGroups)
     {
+        var dateWithOffset = ConstructDateTimeOffset(date, 0, 0);
         var schedule = new ScheduleDoc
         {
-            Date = ConstructDateTimeOffset(date, 0, 0),
-            DateString = date.ToString("O"),
+            Date = dateWithOffset,
+            DateString = dateWithOffset.ToString("O"),
             ImageUrl = imageUrl,
             Groups = hoursGroups.Select(pair => new GroupDoc
             {

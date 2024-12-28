@@ -6,6 +6,8 @@ This project is created to scrape loe for grid power off schedules and wrap that
 0. Login into azure and azure container registry
 ```bash
 az login
+```
+```bash
 az acr login --name loepowerschedule
 ```
 
